@@ -1,0 +1,56 @@
+[project]
+name            = "agentorchestratorpoc"
+version         = "0.1.0"
+description     = "Add your description here"
+readme          = "README.md"
+requires-python = ">=3.14"
+dependencies    = [
+  "agent-framework-foundry>=1.10.1,<2.0.0",
+  "agent-framework-orchestrations>=1.0.0,<2.0.0",
+  "azure-identity>=1.25.3,<2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "prek>=0.4.9,<0.5.0",
+    "ruff>=0.15.21,<0.16.0",
+    "ty>=0.0.59,<0.0.60",
+]
+
+[tool.ruff]
+extend-exclude = [ "magentic_human_plan_review.py" ]
+
+[tool.ruff.lint]
+select = [
+ "E",   # PyCodestyle errors
+ "W",   # PyCodestyle warnings
+ "F",   # PyFlakes
+ "D",   # Docstrings
+ "B",   # Bugbear
+ "Q",   # Quotes
+ "UP",  # PyUpgrade
+ "I",   # isort
+ "C4",  # Flake8-comprehensions
+ "G",   # logging-format
+ "ISC", # Implicit string concatenation
+ "PIE", # flake8-pie
+ "PLE", # Pylint errors
+ "S",   # flake8-bandit
+]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [ "S101" ] # Allow use of assert in tests
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.uv]
+add-bounds    = "major"
+exclude-newer = "P7D"
