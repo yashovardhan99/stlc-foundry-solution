@@ -1,24 +1,20 @@
 [project]
-name            = "agentorchestratorpoc"
-version         = "0.1.0"
-description     = "Add your description here"
-readme          = "README.md"
+name = "agent_orchestrator_poc"
+version = "0.1.0"
+description = "PoC for orchestrating agents using the Agent Framework and deploying them to Azure Foundry."
+readme = "README.md"
 requires-python = ">=3.14"
-dependencies    = [
-  "agent-framework-foundry>=1.10.1,<2.0.0",
-  "agent-framework-orchestrations>=1.0.0,<2.0.0",
-  "azure-identity>=1.25.3,<2.0.0",
+dependencies = [
+ "agent-framework-foundry>=1.10.1,<2.0.0",
+ "agent-framework-orchestrations>=1.0.0,<2.0.0",
+ "azure-identity>=1.25.3,<2.0.0",
 ]
 
 [dependency-groups]
-dev = [
-    "prek>=0.4.9,<0.5.0",
-    "ruff>=0.15.21,<0.16.0",
-    "ty>=0.0.59,<0.0.60",
-]
+dev = [ "prek>=0.4.9,<0.5.0", "ruff>=0.15.21,<0.16.0", "ty>=0.0.59,<0.0.60" ]
 
 [tool.ruff]
-extend-exclude = [ "magentic_human_plan_review.py" ]
+extend-exclude = [ "samples/*" ]
 
 [tool.ruff.lint]
 select = [

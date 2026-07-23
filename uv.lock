@@ -63,7 +63,7 @@ wheels = [
 ]
 
 [[package]]
-name = "agentorchestratorpoc"
+name = "agent-orchestrator-poc"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
