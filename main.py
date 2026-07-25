@@ -1,10 +1,19 @@
-"""Main module for the Agent Orchestrator PoC."""
+"""Main entry point for the agent orchestrator."""
+
+import asyncio
+
+from agent_framework_foundry_hosting import ResponsesHostServer
+
+from workflow import get_orchestrator
 
 
-def main():
-    """Main function for the Agent Orchestrator PoC."""
-    print("Hello from agentorchestratorpoc!")
+async def main():
+    """Main entry point for the agent orchestrator."""
+    orchestrator = get_orchestrator()
+
+    server = ResponsesHostServer(orchestrator)
+    await server.run_async()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

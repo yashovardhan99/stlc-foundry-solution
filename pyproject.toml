@@ -6,9 +6,15 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
  "agent-framework-foundry>=1.10.1,<2.0.0",
+ "agent-framework-foundry-hosting>=1.0.0a260709,<2.0.0",
  "agent-framework-orchestrations>=1.0.0,<2.0.0",
  "azure-identity>=1.25.3,<2.0.0",
+ "httpx>=0.27.0,<1.0.0",
+ "mcp>=1.28.1,<2.0.0",
 ]
+
+[project.optional-dependencies]
+devui = [ "agent-framework-devui>=1.0.0b260709,<2.0.0" ]
 
 [dependency-groups]
 dev = [ "prek>=0.4.9,<0.5.0", "ruff>=0.15.21,<0.16.0", "ty>=0.0.59,<0.0.60" ]
@@ -18,20 +24,21 @@ extend-exclude = [ "samples/*" ]
 
 [tool.ruff.lint]
 select = [
- "E",   # PyCodestyle errors
- "W",   # PyCodestyle warnings
- "F",   # PyFlakes
- "D",   # Docstrings
- "B",   # Bugbear
- "Q",   # Quotes
- "UP",  # PyUpgrade
- "I",   # isort
- "C4",  # Flake8-comprehensions
- "G",   # logging-format
- "ISC", # Implicit string concatenation
- "PIE", # flake8-pie
- "PLE", # Pylint errors
- "S",   # flake8-bandit
+ "ASYNC", # flake8-async
+ "E",     # PyCodestyle errors
+ "W",     # PyCodestyle warnings
+ "F",     # PyFlakes
+ "D",     # Docstrings
+ "B",     # Bugbear
+ "Q",     # Quotes
+ "UP",    # PyUpgrade
+ "I",     # isort
+ "C4",    # Flake8-comprehensions
+ "G",     # logging-format
+ "ISC",   # Implicit string concatenation
+ "PIE",   # flake8-pie
+ "PLE",   # Pylint errors
+ "S",     # flake8-bandit
 ]
 
 

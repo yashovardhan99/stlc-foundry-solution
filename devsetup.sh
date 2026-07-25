@@ -13,4 +13,8 @@ if [ ! -f .env ]; then
   echo "Created .env file from .env.template. Please review and update the .env file with your configuration."
 fi
 
+# Install/update Azure Developer CLI (azd)
+echo "Installing/updating Azure Developer CLI (azd)..."
+curl -fsSL https://aka.ms/install-azd.sh | bash
+
 echo "Development environment setup complete."
