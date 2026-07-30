@@ -1,8 +1,34 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: agent-orchestrator-poc
+name: stlc-agents
 services:
-    agent-orchestrator-poc:
+    proj-default:
+        host: azure.ai.project
+        endpoint: https://foundry-stlc-poc.services.ai.azure.com/api/projects/proj-default
+    requirement-analyzer:
+        project: .
+        host: azure.ai.agent
+        language: python
+        uses:
+            - proj-default
+        codeConfiguration:
+            dependencyResolution: remote_build
+            entryPoint: src/requirement_analyzer.py
+            runtime: python_3_14
+        startupCommand: python src/requirement_analyzer.py
+        container:
+            resources:
+                cpu: "0.5"
+                memory: 1Gi
+        environmentVariables:
+            - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+              value: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+        kind: hosted
+        name: requirement-analyzer
+        protocols:
+            - protocol: responses
+              version: 2.0.0
+    test-case-generator:
         project: .
         host: azure.ai.agent
         language: python
@@ -16,7 +42,7 @@ services:
                 - activity
         codeConfiguration:
             dependencyResolution: remote_build
-            entryPoint: main.py
+            entryPoint: test_case_generator/main.py
             runtime: python_3_14
         container:
             resources:
@@ -28,14 +54,43 @@ services:
             - name: FOUNDRY_PROJECT_ENDPOINT
               value: ${FOUNDRY_PROJECT_ENDPOINT}
         kind: hosted
-        name: agent-orchestrator-poc
+        name: test-case-generator
         protocols:
             - protocol: responses
               version: 2.0.0
             - protocol: activity
               version: 2.0.0
-    proj-default:
-        host: azure.ai.project
-        endpoint: ${FOUNDRY_PROJECT_ENDPOINT}
+    test-executor:
+        project: .
+        host: azure.ai.agent
+        language: python
+        uses:
+            - proj-default
+        agentEndpoint:
+            authorizationSchemes:
+                - type: BotServiceRbac
+            protocols:
+                - responses
+                - activity
+        codeConfiguration:
+            dependencyResolution: remote_build
+            entryPoint: test_executor/main.py
+            runtime: python_3_14
+        container:
+            resources:
+                cpu: "0.5"
+                memory: 1Gi
+        environmentVariables:
+            - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+              value: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+            - name: FOUNDRY_PROJECT_ENDPOINT
+              value: ${FOUNDRY_PROJECT_ENDPOINT}
+        kind: hosted
+        name: test-executor
+        protocols:
+            - protocol: responses
+              version: 2.0.0
+            - protocol: activity
+              version: 2.0.0
 infra:
     provider: microsoft.foundry

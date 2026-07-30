@@ -38,6 +38,3 @@ node_modules/
 # Docker (not used in code deploy)
 Dockerfile
 .dockerignore
-
-# Samples directory
-samples/

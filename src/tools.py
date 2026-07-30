@@ -1,10 +1,4 @@
-"""Azure DevOps tools via the Foundry 'stlc-tools' MCP toolbox.
-
-The Foundry project exposes the toolbox as a Streamable-HTTP MCP endpoint. We
-connect to it with agent-framework's ``MCPStreamableHTTPTool``, authenticating
-every request with a fresh Entra bearer token and the Foundry Toolboxes preview
-header. Tool calls run without an approval gate (``approval_mode="never_require"``).
-"""
+"""Get tools via Foundry toolboxes."""
 
 import os
 from collections.abc import Callable
@@ -13,7 +7,6 @@ import httpx
 from agent_framework import MCPStreamableHTTPTool
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-TOOLBOX_NAME = "stlc-tools"
 TOOLBOX_SCOPE = "https://ai.azure.com/.default"
 
 
@@ -28,21 +21,14 @@ class _ToolboxAuth(httpx.Auth):
         yield request
 
 
-def get_ado_toolbox(credential: DefaultAzureCredential) -> MCPStreamableHTTPTool:
-    """Return the 'stlc-tools' Foundry toolbox as an MCP tool.
-
-    ``credential`` is reused from the caller (shared with the chat client) so a
-    single identity authenticates both the model and the toolbox. The toolbox URL
-    is derived from ``FOUNDRY_PROJECT_ENDPOINT``; the name is overridable via
-    ``ADO_TOOLBOX_NAME``.
-    """
+def get_toolbox(name: str, credential: DefaultAzureCredential) -> MCPStreamableHTTPTool:
+    """Return a foundry toolbox as an MCP tool."""
     endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
     if not endpoint:
         raise RuntimeError(
             "Missing required environment variable: FOUNDRY_PROJECT_ENDPOINT"
         )
 
-    name = os.environ.get("ADO_TOOLBOX_NAME", TOOLBOX_NAME)
     url = f"{endpoint.rstrip('/')}/toolboxes/{name}/mcp?api-version=v1"
 
     token_provider = get_bearer_token_provider(credential, TOOLBOX_SCOPE)
