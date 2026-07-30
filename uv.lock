@@ -74,6 +74,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "agent-framework-foundry" },
     { name = "agent-framework-foundry-hosting" },
+    { name = "azure-devops" },
     { name = "azure-identity" },
     { name = "httpx" },
     { name = "mcp" },
@@ -90,6 +91,7 @@ dev = [
 requires-dist = [
     { name = "agent-framework-foundry", specifier = ">=1.10.3,<2.0.0" },
     { name = "agent-framework-foundry-hosting", specifier = ">=1.0.0a260709,<2.0.0" },
+    { name = "azure-devops", specifier = ">=7.1.0b4,<8.0.0" },
     { name = "azure-identity", specifier = ">=1.25.3,<2.0.0" },
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "mcp", specifier = ">=1.28.1,<2.0.0" },
@@ -318,6 +320,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/ab/a937e4af8afec9d437d55252f2a3a4419fc3fc7d5e5d54022622bd11b2b6/azure_core_tracing_opentelemetry-1.0.0b13.tar.gz", hash = "sha256:6cb2f8dfd5dee6c11843db0205fc92e2434e1a272c169c953afe92483aafc7eb", size = 25832, upload-time = "2026-05-01T00:59:57.941Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/01/8898c2506cae6a57c1b76d930d2af94764a65354bc863feb2684235851ce/azure_core_tracing_opentelemetry-1.0.0b13-py3-none-any.whl", hash = "sha256:4dacd3a9f117f11f98e89305e161c951b8df85b984f3b56130614de9cd9887f9", size = 12112, upload-time = "2026-05-01T00:59:59.149Z" },
+]
+
+[[package]]
+name = "azure-devops"
+version = "7.1.0b4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "msrest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/f9/495982345252dc7a15ac632e038be1f975ca0d2f25abfe8f8d908569141d/azure-devops-7.1.0b4.tar.gz", hash = "sha256:f04ba939112579f3d530cfecc044a74ef9e9339ba23c9ee1ece248241f07ff85", size = 1336261, upload-time = "2023-11-20T14:38:06.019Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/30/067b9aba3cb146f4334afb737eb86c4f66e2b645fbca770377253550a9b3/azure_devops-7.1.0b4-py3-none-any.whl", hash = "sha256:f827e9fbc7c77bc6f2aaee46e5717514e9fe7d676c87624eccd0ca640b54f122", size = 1554711, upload-time = "2023-11-20T14:38:02.811Z" },
 ]
 
 [[package]]
