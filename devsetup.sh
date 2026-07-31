@@ -6,15 +6,14 @@ fi
 echo "Setting up development environment..."
 uv sync --dev
 # Install prek hooks
-uv run prek install
-# Check if the user has a .env file, if not copy the example one
-if [ ! -f .env ]; then
-  cp .env.template .env
-  echo "Created .env file from .env.template. Please review and update the .env file with your configuration."
-fi
+uv run prek install -f
 
 # Install/update Azure Developer CLI (azd)
 echo "Installing/updating Azure Developer CLI (azd)..."
 curl -fsSL https://aka.ms/install-azd.sh | bash
 
-echo "Development environment setup complete."
+azd extension install azure.ai.agents
+azd extension install azure.ai.inspector # Optional, but recommended for local development and testing of AI agents
+azd extension install azure.ai.projects
+
+echo "Development environment setup complete. Please set environment variables using azd env set <key> <value>."
