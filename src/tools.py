@@ -1,5 +1,7 @@
 """Get tools via Foundry toolboxes."""
 
+import ast
+import json
 import os
 import uuid
 from collections.abc import Callable
@@ -163,3 +165,76 @@ def get_web_content(url: str) -> str:
         content[:MAX_WEB_CONTENT_CHARS]
         + "\n\n[Content truncated to protect the agent context window.]"
     )
+
+
+@tool
+def validate_pytest_script(file_content: str) -> str:
+    """Run static smoke checks on generated pytest/Playwright script content.
+
+    Args:
+        file_content: Generated Python test script content.
+
+    Returns:
+        JSON string with shape: {"valid": bool, "errors": [str], "warnings": [str]}.
+
+    Notes:
+        This is a static checker. It does not execute the test script and does not guarantee
+        runtime correctness for all Playwright APIs.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    tree: ast.Module | None = None
+    try:
+        tree = ast.parse(file_content)
+    except SyntaxError as exc:
+        errors.append(
+            f"Syntax error at line {exc.lineno}, column {exc.offset}: {exc.msg}"
+        )
+
+    if tree is not None:
+        test_functions = [
+            node.name
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        ]
+        if not test_functions:
+            errors.append(
+                "No pytest-discoverable tests found. Add at least one function named with "
+                "the 'test_' prefix."
+            )
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "to_have_url":
+                if node.args and isinstance(node.args[0], ast.Lambda):
+                    errors.append(
+                        "Invalid Playwright usage: expect(page).to_have_url() cannot take "
+                        "a lambda in Python. Use a string or compiled regex."
+                    )
+
+            if isinstance(node.func, ast.Attribute):
+                if (
+                    isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "time"
+                    and node.func.attr == "sleep"
+                ):
+                    warnings.append(
+                        "Avoid fixed waits with time.sleep; prefer Playwright auto-waiting "
+                        "assertions and locator actions."
+                    )
+
+    if "to_have_utl(" in file_content:
+        errors.append(
+            "Possible typo detected: 'to_have_utl'. Did you mean 'to_have_url'?"
+        )
+
+    result = {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+    }
+    return json.dumps(result)

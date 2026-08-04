@@ -23,6 +23,8 @@ The test executor's only job is to write the tests and execute them. It does not
 ::: mermaid
 sequenceDiagram
     Orchestrator ->> Test Executor: Generated test cases in an appropriate format.
+    Test Executor ->> get_web_content (tool): Webpage URL
+    get_web_content (tool) ->> Test Executor: Webpage contents (basic HTTP GET)
     Test Executor ->> git_commit_push (tool): Generated code
     git_commit_push (tool) -->> Azure DevOps: Commit the generated test file and push it as a new commit.
     git_commit_push (tool) ->> Test Executor: Branch name where the code is pushed.
@@ -107,3 +109,4 @@ There are 3 tools that we have defnied in this project.
 1. Foundry toolbox (`get_toolbox`) - as it is mentioned above, you need to create a foundry toolbox with the relevant tools your agent needs beforehand. The code then fetches that toolbox and makes it available to the agent. This allows us to keep the relevant tool definitions separate from the code. In our PoC, we only need the Azure DevOps MCP server in the toolbox.
 2. `git_commit_push` - this tool allows the test-executor to commit and push a file to the repo. It uses the PAT token defined in the environment variable to access the git repository. The reason to keep this separate was that the current ADO MCP server doesn't allow us to make code changes. We instead rely on the DevOps Python SDK (which is just a wrapper around the ADO REST API).
 3. `get_web_content` - this is a simple tool that essentially fetches a web URL and provides the contents to the agent. This allows the agent to check the page content before writing tests for the web page. This can later be extended to support more complex use-cases where we need to get the page DOM instead. For our usecase, a simple HTTP GET request seems to suffice.
+4. `validate_pytest_script` - A small static checker which can help the agent validate code syntax and basic correctness. It checks for Python parse errors, missing `test_` functions, common typos, and a few known bad patterns (such as lambda passed to `to_have_url`). This validation does not check full Playwright runtime/API correctness, but only for some narrow scenarios.
