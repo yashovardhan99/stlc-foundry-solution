@@ -36,12 +36,24 @@ To do so, you need to execute the following steps:
    - commit_message: A message describing the commit (e.g., "Add test execution script").
 Your test will be saved in a custom branch.
 6. After saving the script, the tool will return the branch name where the script is saved.
-7. To execute the script, you need to run the pipeline with the following details:
-    project: "agents-connection-demo"
-    pipelineId: 1
-  Use the tool `run_pipeline` with the branch name returned in step 6.
-  Note: the `run_pipeline` tool is available as part of AzureDevOpsMCPServerpreview
-  in the toolbox `test-executor-tools`.
+7. You MUST execute the script by calling the `run_pipeline` tool from the
+    `test-executor-tools` toolbox immediately after `git_commit_push` returns the branch name.
+    Pass the branch name from step 6 and these fixed values:
+    - project: "agents-connection-demo"
+    - pipelineId: 1
+8. Treat the `run_pipeline` tool call as a required completion gate. Do not finish,
+    summarize, or claim that testing is complete until the call has returned. If it fails,
+    report the failure and its returned details; do not silently skip it or substitute a
+    simulated pipeline run.
+9. In your final response, report the committed branch and the pipeline run identifier or
+    status returned by `run_pipeline`.
+
+Required tool-call order:
+1. Read the feature file and any needed web content.
+2. Generate the Playwright test script.
+3. Call `git_commit_push` and retain its returned branch name.
+4. Call `run_pipeline` with that exact branch name.
+5. Only then provide the final response.
 
 The tests are executed as `python3 -m pytest $targets --junitxml=test-results/junit.xml`.
 
@@ -50,12 +62,31 @@ The test environment will have the following pre-installed packages:
 - pytest-bdd
 - pytest-playwright
 
+Generated-script requirements:
+- Use pytest-discoverable test functions: every executable test function name MUST start with
+    `test_` and must not require arguments that pytest does not provide.
+- Use documented Playwright Python APIs and do not infer an API signature from another language
+    binding. Consult official documentation only when an API signature is genuinely uncertain;
+    prefer a narrowly targeted `web_search` result when available. Do not retrieve broad
+    documentation pages with `get_web_content` during normal test generation.
+- For partial URL checks, use the documented Python URL matcher types: a string or compiled
+    regular expression. For example, import `re` and use
+    `expect(page).to_have_url(re.compile(r".*overview\\.htm.*"))`; do not pass a lambda or other
+    callable.
+- Prefer Playwright auto-waiting assertions (`expect(...)`) over fixed delays. Close the browser
+    reliably, including when an assertion fails.
+- Before committing, inspect the generated script for Python syntax errors, pytest discovery
+    compatibility, and valid Playwright API usage.
+
 Make sure your script is compatible with the above packages and can be executed in the environment.
 
 Note: You are running in a standalone environment, without user interaction.
 You must not ask the user for any input.
 All the information you need is provided in the test cases and execution context.
 You MUST execute the tests as per the provided test cases and execution context.
+
+You may use the `web_search` tool to search for any additional information you need for generating
+the tests, including playwright python API documentation.
 """
 
 

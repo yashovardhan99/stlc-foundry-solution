@@ -26,6 +26,7 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from msrest.authentication import BasicAuthentication
 
 TOOLBOX_SCOPE = "https://ai.azure.com/.default"
+MAX_WEB_CONTENT_CHARS = 20_000
 
 
 class _ToolboxAuth(httpx.Auth):
@@ -113,6 +114,9 @@ def git_commit_push(file_name: str, file_content: str, commit_message: str) -> s
         old_object_id=base_branch.object_id,
     )
 
+    if not file_name.startswith("test_"):
+        file_name = "test_" + file_name
+
     file_path = Path("generated_tests") / Path(file_name)
 
     change = Change(
@@ -141,14 +145,21 @@ def git_commit_push(file_name: str, file_content: str, commit_message: str) -> s
 
 @tool
 def get_web_content(url: str) -> str:
-    """Get the content of a web page.
+    """Get up to 20,000 characters from a web page.
 
     Args:
         url: The URL of the web page to get.
 
     Returns:
-        The content of the web page.
+        The page content, truncated when necessary to protect the agent context window.
     """
     response = httpx.get(url)
     response.raise_for_status()
-    return response.text
+    content = response.text
+    if len(content) <= MAX_WEB_CONTENT_CHARS:
+        return content
+
+    return (
+        content[:MAX_WEB_CONTENT_CHARS]
+        + "\n\n[Content truncated to protect the agent context window.]"
+    )
