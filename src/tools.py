@@ -3,6 +3,7 @@
 import os
 import uuid
 from collections.abc import Callable
+from pathlib import Path
 
 import httpx
 from agent_framework import MCPStreamableHTTPTool, tool
@@ -112,9 +113,11 @@ def git_commit_push(file_name: str, file_content: str, commit_message: str) -> s
         old_object_id=base_branch.object_id,
     )
 
+    file_path = Path("generated_tests") / Path(file_name)
+
     change = Change(
         "add",
-        GitItem(path=file_name),
+        GitItem(path=file_path.as_posix()),
         ItemContent(content=file_content, content_type="rawtext"),
     )
 
@@ -134,3 +137,18 @@ def git_commit_push(file_name: str, file_content: str, commit_message: str) -> s
     )
 
     return new_branch_name
+
+
+@tool
+def get_web_content(url: str) -> str:
+    """Get the content of a web page.
+
+    Args:
+        url: The URL of the web page to get.
+
+    Returns:
+        The content of the web page.
+    """
+    response = httpx.get(url)
+    response.raise_for_status()
+    return response.text

@@ -15,7 +15,6 @@ services:
             dependencyResolution: remote_build
             entryPoint: src/requirement_analyzer.py
             runtime: python_3_14
-        startupCommand: python src/requirement_analyzer.py
         container:
             resources:
                 cpu: "0.5"
@@ -30,6 +29,7 @@ services:
         protocols:
             - protocol: responses
               version: 2.0.0
+        startupCommand: python src/requirement_analyzer.py
     test-case-generator:
         project: .
         host: azure.ai.agent
@@ -40,7 +40,6 @@ services:
             dependencyResolution: remote_build
             entryPoint: src/test_case_generator.py
             runtime: python_3_14
-        startupCommand: python src/test_case_generator.py
         container:
             resources:
                 cpu: "0.5"
@@ -55,6 +54,7 @@ services:
         protocols:
             - protocol: responses
               version: 2.0.0
+        startupCommand: python src/test_case_generator.py
     test-executor:
         project: .
         host: azure.ai.agent
@@ -65,7 +65,6 @@ services:
             dependencyResolution: remote_build
             entryPoint: src/test_executor.py
             runtime: python_3_14
-        startupCommand: python src/test_executor.py
         container:
             resources:
                 cpu: "0.5"
@@ -82,5 +81,6 @@ services:
         protocols:
             - protocol: responses
               version: 2.0.0
+        startupCommand: python src/test_executor.py
 infra:
     provider: microsoft.foundry
