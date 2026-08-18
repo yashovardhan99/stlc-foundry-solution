@@ -20,7 +20,7 @@ The test executor's only job is to write the tests and execute them. It does not
 
 ### Flow
 
-::: mermaid
+``` mermaid
 sequenceDiagram
     Orchestrator ->> Test Executor: Generated test cases in an appropriate format.
     Test Executor ->> get_web_content (tool): Webpage URL
@@ -30,7 +30,7 @@ sequenceDiagram
     git_commit_push (tool) ->> Test Executor: Branch name where the code is pushed.
     Test Executor -->> Azure DevOps: (via MCP Server) Trigger pipeline with specified file name and branch name.
     Azure DevOps -->> Orchestrator: (or directly to Bug Logger) result of the test run.
-:::
+```
 
 ## Developer tooling
 
