@@ -9,20 +9,25 @@ from agent_framework.openai import OpenAIChatOptions
 from agent_framework_foundry_hosting import ResponsesHostServer
 from azure.identity import DefaultAzureCredential
 
-from tools import get_toolbox, get_web_content, git_commit_push, validate_pytest_script
+from tools import get_github_mcp, get_web_content, validate_pytest_script
 
 default_options: OpenAIChatOptions = {"store": False}
 
 
-PROMPT = """
+PROMPT_TEMPLATE = """
 Role:
 You are a test execution specialist. Convert provided BDD .feature scenarios into executable
-Playwright Python tests, commit them, and trigger pipeline execution.
+Playwright Python tests and commit them to GitHub. Pushing the branch triggers the GitHub Actions
+workflow that runs the tests, so you do not trigger execution yourself.
+
+Repository context (use these exact values for every `github` tool call):
+- owner: __OWNER__
+- repo: __REPO__
 
 Non-negotiable rules:
 - Do not ask the user questions.
 - Do not skip or simulate required tool calls.
-- Do not claim success before pipeline trigger returns.
+- Do not claim success before the file is committed to a new branch.
 - Preserve test intent from the feature file. If exact execution is impossible, state deviation.
 
 Tool and workflow contract (strict order):
@@ -36,13 +41,16 @@ Tool and workflow contract (strict order):
     Repeat this fix-and-validate loop up to 3 attempts total.
     If still invalid after attempt 3, do not commit; return a failure summary with all
     validation errors from the last attempt.
-6. Call `git_commit_push(file_name, file_content, commit_message)` only when validation is valid.
-7. Capture returned branch name.
-8. Call `run_pipeline` from `test-executor-tools` with:
-   - project: "agents-connection-demo"
-   - pipelineId: 1
-   - branch: exact branch returned by `git_commit_push`
-9. Only after step 8 returns, produce the final response.
+6. Commit the validated file to GitHub using the `github` MCP tools, only when validation is valid:
+   a. Choose a unique branch name of the form `test-executor-<short-uuid>`.
+   b. Call `create_branch` with the owner and repo from the Repository context above, the
+      new branch name, and `from_branch: main`.
+   c. Ensure the file name starts with `test_` and the path is `generated_tests/<file_name>`.
+   d. Call `create_or_update_file` with the same owner/repo, `branch` set to the new branch, the
+      `generated_tests/<file_name>` path, the file content, and a clear commit message.
+7. Capture the branch name you created.
+8. Do not trigger any pipeline. Pushing the branch automatically starts the GitHub Actions test run.
+9. Produce the final response.
 
 Generated test file contract:
 - Runtime assumptions: pytest, pytest-bdd, pytest-playwright are preinstalled.
@@ -64,8 +72,8 @@ Documentation guidance:
 
 Final response format:
 - Validation outcome summary (pass/fail and any warnings addressed).
-- Branch name from `git_commit_push`.
-- Pipeline run id/status from `run_pipeline`.
+- Branch name where the test file was committed.
+- A note that the GitHub Actions workflow was triggered by the push.
 - Any explicit deviations from test intent.
 """
 
@@ -79,13 +87,17 @@ async def main():
             "AZURE_AI_MODEL_DEPLOYMENT_NAME", os.environ.get("FOUNDRY_MODEL", "gpt-5")
         ),
         credential=credential,
+        function_invocation_configuration={"include_detailed_errors": True},
     )
-    toolbox = get_toolbox("test-executor-tools", credential)
+    toolbox = get_github_mcp()
+    instructions = PROMPT_TEMPLATE.replace(
+        "__OWNER__", os.environ["GITHUB_OWNER"]
+    ).replace("__REPO__", os.environ["GITHUB_REPO"])
     agent = Agent(
         name="TestExecutor",
         client=client,
-        instructions=PROMPT,
-        tools=[toolbox, git_commit_push, get_web_content, validate_pytest_script],
+        instructions=instructions,
+        tools=[toolbox, get_web_content, validate_pytest_script],
         default_options=default_options,
     )
     server = ResponsesHostServer(agent)
