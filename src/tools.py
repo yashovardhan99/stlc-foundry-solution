@@ -83,19 +83,10 @@ def get_web_content(url: str) -> str:
     )
 
 
-@tool
-def validate_pytest_script(file_content: str) -> str:
+def _validate_pytest_script(file_content: str) -> str:
     """Run static smoke checks on generated pytest/Playwright script content.
 
-    Args:
-        file_content: Generated Python test script content.
-
-    Returns:
-        JSON string with shape: {"valid": bool, "errors": [str], "warnings": [str]}.
-
-    Notes:
-        This is a static checker. It does not execute the test script and does not guarantee
-        runtime correctness for all Playwright APIs.
+    Returns a JSON string: {"valid": bool, "errors": [str], "warnings": [str]}.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -154,3 +145,20 @@ def validate_pytest_script(file_content: str) -> str:
         "warnings": warnings,
     }
     return json.dumps(result)
+
+
+@tool
+def validate_pytest_script(file_content: str) -> str:
+    """Run static smoke checks on generated pytest/Playwright script content.
+
+    Args:
+        file_content: Generated Python test script content.
+
+    Returns:
+        JSON string with shape: {"valid": bool, "errors": [str], "warnings": [str]}.
+
+    Notes:
+        This is a static checker. It does not execute the test script and does not guarantee
+        runtime correctness for all Playwright APIs.
+    """
+    return _validate_pytest_script(file_content)

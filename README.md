@@ -16,7 +16,7 @@ The test executor is a special agent which needs to do a lot more than the other
 - Save and commit the generated test files to a GitHub repository in a new branch.
 - Rely on the push to automatically trigger a GitHub Actions workflow that runs the generated code.
 
-The test executor's only job is to write the tests and execute them. It does not wait for the tests to be completed. Instead, we will be triggering the bug logger agent directly, once the GitHub Actions workflow completes.
+The test executor's only job is to write the tests and execute them. It does not wait for the tests to be completed. The bug logger agent is triggered automatically once the GitHub Actions workflow completes.
 
 ### Flow
 
@@ -29,7 +29,7 @@ sequenceDiagram
     GitHub (MCP server) -->> GitHub: Commit the generated test file to a new branch.
     GitHub (MCP server) ->> Test Executor: Branch name where the code is pushed.
     GitHub -->> GitHub Actions: Push automatically triggers the test workflow.
-    GitHub Actions -->> Orchestrator: (or directly to Bug Logger) result of the test run.
+    GitHub Actions -->> Bug Logger: On completion, the run result auto-triggers the bug logger.
 ```
 
 ## Developer tooling
@@ -90,6 +90,19 @@ To deploy, use `azd deploy ...`.
 You can specify which agent you wish to deploy, for eg. `azd deploy test-executor`.
 
 Make sure all environment variables are correctly set before the deployment.
+
+## Copilot Studio integration
+
+The orchestration and the other agents (requirement-analyzer, test-case-generator, bug-logger) live in Copilot Studio. The deployed `test-executor` is connected to that orchestrator as an external Microsoft Foundry agent.
+
+To bind it:
+
+1. Deploy the agent (`azd deploy test-executor`) and note its **Agent Id** and the **Foundry project endpoint** (`FOUNDRY_PROJECT_ENDPOINT`).
+2. In Copilot Studio, open your orchestrator agent and go to **Agents** → **Add an agent** → **Connect to an external agent**.
+3. Choose **Microsoft Foundry**, then supply the project endpoint and select the `test-executor` Agent Id.
+4. Have the orchestrator route the generated BDD `.feature` content to this agent as the input message.
+
+The agent's response reports the branch it created and confirms the GitHub Actions run was triggered by the push. It does not wait for the run to finish; the bug-logger agent is triggered automatically once the workflow completes.
 
 ## Code
 

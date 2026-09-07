@@ -1,7 +1,11 @@
+[build-system]
+requires = [ "hatchling" ]
+build-backend = "hatchling.build"
+
 [project]
-name = "agent_orchestrator_poc"
+name = "stlc-test-executor"
 version = "0.1.0"
-description = "PoC for orchestrating agents using the Agent Framework and deploying them to Azure Foundry."
+description = "STLC test-executor: a hosted Foundry agent that turns BDD scenarios into Playwright tests and commits them to GitHub."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -15,8 +19,15 @@ dependencies = [
 
 [project.optional-dependencies]
 
+[project.scripts]
+stlc-test-executor = "test_executor:run"
+
 [dependency-groups]
-dev = [ "prek>=0.4.9,<0.5.0", "ruff>=0.15.21,<0.16.0", "ty>=0.0.59,<0.0.60" ]
+dev = [ "prek>=0.4.9,<0.5.0", "pytest>=8.4.0,<9.0.0", "ruff>=0.15.21,<0.16.0", "ty>=0.0.59,<0.0.60" ]
+
+[tool.hatch.build.targets.wheel]
+sources = { "src" = "" }
+only-include = [ "src" ]
 
 [tool.ruff]
 extend-exclude = [ "samples/*" ]
@@ -48,10 +59,14 @@ convention = "google"
 max-line-length = 100
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = [ "S101" ] # Allow use of assert in tests
+"tests/*" = [ "S101", "D103" ] # Allow asserts and skip docstrings in tests
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.pytest.ini_options]
+pythonpath = [ "src" ]
+testpaths = [ "tests" ]
 
 [tool.uv]
 add-bounds    = "major"
