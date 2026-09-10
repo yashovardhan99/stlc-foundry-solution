@@ -12,6 +12,17 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
 GITHUB_MCP_URL_DEFAULT = "https://api.githubcopilot.com/mcp/"
+# GitHub MCP tools the agent is allowed to call (client-side allow-list).
+DEFAULT_ALLOWED_TOOLS = (
+    "create_branch",
+    "create_or_update_file",
+    "create_pull_request",
+    "get_file_contents",
+    "search_code",
+    "issue_read",
+    "search_issues",
+)
+
 # Key Vault secret name, not a credential value.
 DEFAULT_PAT_SECRET_NAME = "github-test-executor-pat"  # noqa: S105
 MAX_WEB_CONTENT_CHARS = 20_000
@@ -46,9 +57,15 @@ def _github_pat() -> str:
 def get_github_mcp() -> MCPStreamableHTTPTool:
     """Return the remote GitHub MCP server as an MCP tool, authed with a Key Vault PAT."""
     url = os.environ.get("GITHUB_MCP_URL", GITHUB_MCP_URL_DEFAULT)
+    allowed_override = os.environ.get("GITHUB_MCP_ALLOWED_TOOLS")
+    allowed_tools = (
+        tuple(name.strip() for name in allowed_override.split(",") if name.strip())
+        if allowed_override
+        else DEFAULT_ALLOWED_TOOLS
+    )
 
     http_client = httpx.AsyncClient(
-        auth=_BearerAuth(_github_pat),
+        auth=_BearerAuth(token_provider=_github_pat),
         timeout=120.0,
     )
 
@@ -56,8 +73,8 @@ def get_github_mcp() -> MCPStreamableHTTPTool:
         name="github",
         url=url,
         http_client=http_client,
-        load_prompts=False,
         approval_mode="never_require",
+        allowed_tools=allowed_tools,
     )
 
 
