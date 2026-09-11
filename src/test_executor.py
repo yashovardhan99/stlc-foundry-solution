@@ -52,7 +52,8 @@ async def main():
         credential=credential,
         function_invocation_configuration={"include_detailed_errors": True},
     )
-    toolbox = get_github_mcp()
+    web_search_tool = client.get_web_search_tool()
+    github_mcp = get_github_mcp()
     instructions = build_instructions(
         os.environ["GITHUB_OWNER"], os.environ["GITHUB_REPO"]
     )
@@ -60,7 +61,7 @@ async def main():
         name="TestExecutor",
         client=client,
         instructions=instructions,
-        tools=[toolbox, get_web_content, validate_pytest_script],
+        tools=[github_mcp, web_search_tool, get_web_content, validate_pytest_script],
         default_options=default_options,
     )
     server = ResponsesHostServer(agent)

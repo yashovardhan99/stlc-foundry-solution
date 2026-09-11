@@ -1,4 +1,4 @@
-"""Get tools via Foundry toolboxes."""
+"""Functional tools and MCP integrations for the test executor agent."""
 
 import ast
 import json

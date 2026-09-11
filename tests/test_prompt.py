@@ -20,6 +20,13 @@ def test_prompt_includes_pull_request_and_issue_steps():
     assert "issue_read" in instructions
 
 
+def test_prompt_requires_page_evidence_and_reports_limitations():
+    instructions = test_executor.build_instructions("acme", "widgets")
+    assert "Treat this inspection as required" in instructions
+    assert "do not guess its selectors" in instructions
+    assert "completed only partially" in instructions
+
+
 def test_github_pat_requires_vault_url(monkeypatch):
     monkeypatch.delenv("AZURE_KEY_VAULT_URL", raising=False)
     tools._github_pat.cache_clear()
