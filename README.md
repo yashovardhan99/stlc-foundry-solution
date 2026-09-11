@@ -60,7 +60,7 @@ The built-in validator checks Python syntax, pytest discovery, selected Playwrig
 - Python `>=3.14`
 - `uv`
 - Azure Developer CLI (`azd`)
-- A Microsoft Foundry project and model deployment
+- An Azure subscription with access to create Foundry resources
 - A GitHub repository with an initialized `main` branch
 - A pull-request GitHub Actions workflow in the target repository
 - An RBAC-enabled Azure Key Vault
@@ -83,6 +83,9 @@ Copy [.env.template](.env.template) for local configuration. Deployment values a
 
 | Variable | Required | Description |
 | --- | --- | --- |
+| `AZURE_SUBSCRIPTION_ID` | Yes for `azd up` | Subscription where Foundry resources are created. |
+| `AZURE_LOCATION` | Yes for `azd up` | Azure region for the Foundry resource and model. |
+| `AZURE_AI_PROJECT_NAME` | Yes for `azd up` | Name of the new Foundry project. |
 | `FOUNDRY_PROJECT_ENDPOINT` | Yes | Foundry project endpoint. |
 | `AZURE_AI_MODEL_DEPLOYMENT_NAME` | No | Model deployment; falls back to `FOUNDRY_MODEL` or `gpt-5`. |
 | `AZURE_KEY_VAULT_URL` | Yes | Vault containing the GitHub PAT. |
@@ -91,6 +94,30 @@ Copy [.env.template](.env.template) for local configuration. Deployment values a
 | `GITHUB_REPO` | Yes | GitHub repository name. |
 | `GITHUB_MCP_URL` | No | Remote MCP endpoint; defaults to `https://api.githubcopilot.com/mcp/`. |
 | `GITHUB_MCP_ALLOWED_TOOLS` | No | Comma-separated client-side allow-list; defaults to `create_branch,create_or_update_file,create_pull_request,get_file_contents,search_code,issue_read,search_issues`. |
+
+The default model deployment is the opinionated `gpt-5.6-terra` entry declared in `azure.yaml` (version `2026-07-09`, `GlobalStandard`, capacity `10`). To use a different model, edit that single `deployments` entry and set `AZURE_AI_MODEL_DEPLOYMENT_NAME` to the same deployment name. The model version and SKU must be available in the selected Azure region.
+
+## Quickstart
+
+The template creates the Foundry project, model deployment, and hosted agent with `azd up`:
+
+```bash
+azd auth login
+azd env new stlc-test-executor-dev
+azd env set AZURE_SUBSCRIPTION_ID "<subscription-id>"
+azd env set AZURE_LOCATION "eastus"
+azd env set AZURE_AI_PROJECT_NAME "<foundry-project-name>"
+azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME "gpt-5.6-terra"
+azd env set AZURE_KEY_VAULT_URL "https://<your-key-vault>.vault.azure.net/"
+azd env set GITHUB_PAT_SECRET_NAME "github-test-executor-pat"
+azd env set GITHUB_OWNER "<github-owner>"
+azd env set GITHUB_REPO "<github-repo>"
+azd up
+```
+
+`azd up` runs provisioning and deployment. Provisioning creates the Foundry project and model deployment; deployment publishes the hosted agent.
+
+After the first provision, grant the newly created test-executor Agent Identity the **Key Vault Secrets User** role on the vault, then run `azd deploy test-executor` again. Create the Key Vault, PAT secret, GitHub repository, and GitHub Actions workflow separately; this template intentionally does not create or modify GitHub resources.
 
 ## Local Development and Deployment
 
@@ -113,7 +140,7 @@ In another terminal, invoke the local agent:
 azd ai agent invoke --local
 ```
 
-Deploy the hosted agent:
+Deploy the hosted agent after infrastructure already exists:
 
 ```bash
 azd deploy test-executor
