@@ -27,6 +27,15 @@ def test_prompt_requires_page_evidence_and_reports_limitations():
     assert "completed only partially" in instructions
 
 
+def test_prompt_defines_correlation_metadata():
+    instructions = test_executor.build_instructions("acme", "widgets")
+    assert "Classify the input as `BDD` or `detailed test case`" in instructions
+    assert "never invent an issue reference" in instructions
+    assert "Correlation ID: the exact branch name" in instructions
+    assert "Source issue: issue number/URL or `none`" in instructions
+    assert "generated test path" in instructions
+
+
 def test_github_pat_requires_vault_url(monkeypatch):
     monkeypatch.delenv("AZURE_KEY_VAULT_URL", raising=False)
     tools._github_pat.cache_clear()

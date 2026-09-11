@@ -29,6 +29,7 @@ dist/
 *.egg-info/
 .checkpoints/
 .ruff_cache/
+*.log
 
 # .NET
 bin/
