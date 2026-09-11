@@ -15,3 +15,7 @@ wheels/
 
 # Generated files
 .checkpoints/
+*.log
+
+.ruff_cache/
+.pytest_cache/

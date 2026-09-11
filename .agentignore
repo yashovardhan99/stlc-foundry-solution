@@ -24,6 +24,12 @@ venv/
 *.pyo
 .mypy_cache/
 .pytest_cache/
+build/
+dist/
+*.egg-info/
+.checkpoints/
+.ruff_cache/
+*.log
 
 # .NET
 bin/

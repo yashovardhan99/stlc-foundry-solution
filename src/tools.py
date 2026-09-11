@@ -1,38 +1,35 @@
-"""Get tools via Foundry toolboxes."""
+"""Functional tools and MCP integrations for the test executor agent."""
 
 import ast
 import json
 import os
-import uuid
 from collections.abc import Callable
-from pathlib import Path
+from functools import lru_cache
 
 import httpx
 from agent_framework import MCPStreamableHTTPTool, tool
-from azure.devops.connection import Connection
-from azure.devops.v7_1.core.core_client import CoreClient
-from azure.devops.v7_1.core.models import TeamProject
-from azure.devops.v7_1.git.git_client import GitClient
-from azure.devops.v7_1.git.models import (
-    Change,
-    GitCommitRef,
-    GitItem,
-    GitPush,
-    GitRef,
-    GitRefUpdate,
-    GitRepository,
-    GitUserDate,
-    ItemContent,
-)
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from msrest.authentication import BasicAuthentication
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 
-TOOLBOX_SCOPE = "https://ai.azure.com/.default"
+GITHUB_MCP_URL_DEFAULT = "https://api.githubcopilot.com/mcp/"
+# GitHub MCP tools the agent is allowed to call (client-side allow-list).
+DEFAULT_ALLOWED_TOOLS = (
+    "create_branch",
+    "create_or_update_file",
+    "create_pull_request",
+    "get_file_contents",
+    "search_code",
+    "issue_read",
+    "search_issues",
+)
+
+# Key Vault secret name, not a credential value.
+DEFAULT_PAT_SECRET_NAME = "github-test-executor-pat"  # noqa: S105
 MAX_WEB_CONTENT_CHARS = 20_000
 
 
-class _ToolboxAuth(httpx.Auth):
-    """Inject a fresh Entra bearer token on every request."""
+class _BearerAuth(httpx.Auth):
+    """Inject a bearer token on every request."""
 
     def __init__(self, token_provider: Callable[[], str]) -> None:
         self._get_token = token_provider
@@ -42,107 +39,43 @@ class _ToolboxAuth(httpx.Auth):
         yield request
 
 
-def get_toolbox(name: str, credential: DefaultAzureCredential) -> MCPStreamableHTTPTool:
-    """Return a foundry toolbox as an MCP tool."""
-    endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
-    if not endpoint:
-        raise RuntimeError(
-            "Missing required environment variable: FOUNDRY_PROJECT_ENDPOINT"
-        )
+@lru_cache(maxsize=1)
+def _github_pat() -> str:
+    """Read the GitHub PAT from Key Vault using the hosted agent identity."""
+    vault_url = os.environ.get("AZURE_KEY_VAULT_URL")
+    if not vault_url:
+        raise RuntimeError("Missing required environment variable: AZURE_KEY_VAULT_URL")
 
-    url = f"{endpoint.rstrip('/')}/toolboxes/{name}/mcp?api-version=v1"
+    secret_name = os.environ.get("GITHUB_PAT_SECRET_NAME", DEFAULT_PAT_SECRET_NAME)
+    client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())
+    secret = client.get_secret(secret_name)
+    if not secret.value:
+        raise RuntimeError(f"Key Vault secret '{secret_name}' has no value.")
+    return secret.value
 
-    token_provider = get_bearer_token_provider(credential, TOOLBOX_SCOPE)
+
+def get_github_mcp() -> MCPStreamableHTTPTool:
+    """Return the remote GitHub MCP server as an MCP tool, authed with a Key Vault PAT."""
+    url = os.environ.get("GITHUB_MCP_URL", GITHUB_MCP_URL_DEFAULT)
+    allowed_override = os.environ.get("GITHUB_MCP_ALLOWED_TOOLS")
+    allowed_tools = (
+        tuple(name.strip() for name in allowed_override.split(",") if name.strip())
+        if allowed_override
+        else DEFAULT_ALLOWED_TOOLS
+    )
+
     http_client = httpx.AsyncClient(
-        auth=_ToolboxAuth(token_provider),
-        headers={"Foundry-Features": "Toolboxes=V1Preview"},
+        auth=_BearerAuth(token_provider=_github_pat),
         timeout=120.0,
     )
 
     return MCPStreamableHTTPTool(
-        name=name,
+        name="github",
         url=url,
         http_client=http_client,
-        load_prompts=False,
         approval_mode="never_require",
+        allowed_tools=allowed_tools,
     )
-
-
-@tool
-def git_commit_push(file_name: str, file_content: str, commit_message: str) -> str:
-    """Commit and push a file to the repository.
-
-    Args:
-        file_name: The name of the file to commit and push.
-        file_content: The content of the file to commit and push.
-        commit_message: The commit message to use.
-
-    Returns:
-        The name of the branch where the file was committed and pushed.
-    """
-    # Fill in with your personal access token and org URL
-    personal_access_token = os.environ.get("AZURE_DEVOPS_PAT")
-    organization_url = "https://dev.azure.com/STLC-PoC/"
-    project_name = "agents-connection-demo"
-
-    credentials = BasicAuthentication("", personal_access_token)
-
-    # Create a connection to the org
-    connection = Connection(organization_url, credentials)
-
-    # Get a client (the "core" client provides access to projects, teams, etc)
-    core_client: CoreClient = connection.clients.get_core_client()
-
-    # Get the first page of projects
-    project: TeamProject = core_client.get_project(project_name)
-
-    # Get the Git client
-    git_client: GitClient = connection.clients.get_git_client()
-
-    repository: GitRepository = git_client.get_repository(
-        project.name, project=project.name
-    )
-
-    # Create a new branch
-    new_branch_name = "test-executor-" + str(uuid.uuid4())
-    base_branch_name = "main"
-
-    base_branch: GitRef = git_client.get_refs(
-        repository.id, filter=f"heads/{base_branch_name}"
-    )[0]
-
-    ref_update = GitRefUpdate(
-        name=f"refs/heads/{new_branch_name}",
-        old_object_id=base_branch.object_id,
-    )
-
-    if not file_name.startswith("test_"):
-        file_name = "test_" + file_name
-
-    file_path = Path("generated_tests") / Path(file_name)
-
-    change = Change(
-        "add",
-        GitItem(path=file_path.as_posix()),
-        ItemContent(content=file_content, content_type="rawtext"),
-    )
-
-    user = GitUserDate(
-        name="Test Executor Agent",
-        email="test.executor.agent@example.com",
-    )
-
-    commit = GitCommitRef(author=user, comment=commit_message, changes=[change])
-
-    push = GitPush(ref_updates=[ref_update], commits=[commit])
-
-    git_client.create_push(
-        push,
-        repository.id,
-        project=project.name,
-    )
-
-    return new_branch_name
 
 
 @tool
@@ -167,19 +100,10 @@ def get_web_content(url: str) -> str:
     )
 
 
-@tool
-def validate_pytest_script(file_content: str) -> str:
+def _validate_pytest_script(file_content: str) -> str:
     """Run static smoke checks on generated pytest/Playwright script content.
 
-    Args:
-        file_content: Generated Python test script content.
-
-    Returns:
-        JSON string with shape: {"valid": bool, "errors": [str], "warnings": [str]}.
-
-    Notes:
-        This is a static checker. It does not execute the test script and does not guarantee
-        runtime correctness for all Playwright APIs.
+    Returns a JSON string: {"valid": bool, "errors": [str], "warnings": [str]}.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -238,3 +162,20 @@ def validate_pytest_script(file_content: str) -> str:
         "warnings": warnings,
     }
     return json.dumps(result)
+
+
+@tool
+def validate_pytest_script(file_content: str) -> str:
+    """Run static smoke checks on generated pytest/Playwright script content.
+
+    Args:
+        file_content: Generated Python test script content.
+
+    Returns:
+        JSON string with shape: {"valid": bool, "errors": [str], "warnings": [str]}.
+
+    Notes:
+        This is a static checker. It does not execute the test script and does not guarantee
+        runtime correctness for all Playwright APIs.
+    """
+    return _validate_pytest_script(file_content)
