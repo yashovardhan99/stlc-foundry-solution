@@ -4,7 +4,13 @@ import asyncio
 import os
 from pathlib import Path
 
-from agent_framework import Agent
+from agent_framework import (
+    Agent,
+    AgentLoopMiddleware,
+    TodoProvider,
+    todos_remaining,
+    todos_remaining_message,
+)
 from agent_framework.foundry import FoundryChatClient
 from agent_framework.openai import OpenAIChatOptions
 from agent_framework_foundry_hosting import ResponsesHostServer
@@ -52,6 +58,7 @@ async def main():
         credential=credential,
         function_invocation_configuration={"include_detailed_errors": True},
     )
+    todo_provider = TodoProvider()
     web_search_tool = client.get_web_search_tool()
     github_mcp = get_github_mcp()
     instructions = build_instructions(
@@ -60,6 +67,13 @@ async def main():
     agent = Agent(
         name="TestExecutor",
         client=client,
+        context_providers=[todo_provider],
+        middleware=[
+            AgentLoopMiddleware(
+                todos_remaining(),
+                next_message=todos_remaining_message,
+            ),
+        ],
         instructions=instructions,
         tools=[github_mcp, web_search_tool, get_web_content, validate_pytest_script],
         default_options=default_options,

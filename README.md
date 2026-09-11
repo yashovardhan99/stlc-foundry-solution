@@ -17,7 +17,7 @@ sequenceDiagram
     GitHub -->> Copilot Studio: Actions result and workflow completion
 ```
 
-The agent creates a branch from `main`, commits one generated test file, and opens a pull request. It never merges the pull request, directly triggers a pipeline, or waits for GitHub Actions to finish. The external bug logger is triggered by the completed Actions workflow.
+The agent manages multi-step work with a persistent todo list. It continues through planning, context gathering, test generation, validation, GitHub commit, and pull-request creation until the todo list is complete or the middleware safety limit is reached. It creates a branch from `main`, commits one generated test file, and opens a pull request. It never merges the pull request, directly triggers a pipeline, or waits for GitHub Actions to finish. The external bug logger is triggered by the completed Actions workflow.
 
 ## Capabilities
 
@@ -28,6 +28,7 @@ The agent creates a branch from `main`, commits one generated test file, and ope
 - Uses the built-in Foundry web-search tool for focused supplemental research.
 - Runs static validation before any GitHub write.
 - Creates a branch, commits the generated test, and opens a pull request through GitHub MCP.
+- Uses a persistent todo list to track and complete multi-step work in one agent run.
 - Preserves human review by leaving pull requests open.
 
 ### Guardrails
@@ -35,6 +36,7 @@ The agent creates a branch from `main`, commits one generated test file, and ope
 - Target-page inspection is required whenever a target URL, page, or application flow is available.
 - The agent must not invent selectors, URLs, credentials, API behavior, or test results.
 - Generated tests are committed only after validation succeeds.
+- Work continues until all tracked todos are complete, subject to the middleware's bounded iteration limit.
 - Failed page lookups and partial GitHub operations are reported explicitly.
 - Secrets and sensitive page content must not be written to generated files, commits, or pull requests.
 
@@ -54,6 +56,10 @@ python3 -m pytest $targets --junitxml=test-results/junit.xml
 ```
 
 The built-in validator checks Python syntax, pytest discovery, selected Playwright mistakes, typo patterns, and fixed-wait warnings. It is a static smoke check; it does not execute the generated test or guarantee runtime correctness.
+
+### Multi-step execution
+
+The agent uses the Microsoft Agent Framework `TodoProvider` to maintain work items across the active session. `AgentLoopMiddleware` automatically starts another agent iteration while incomplete todos remain, using the provider's generated instructions and progress context. This allows the agent to recover from intermediate validation failures, gather missing context, and finish the complete workflow without requiring the orchestrator to manually replay the request. The loop has a default maximum of 10 iterations as a safety limit.
 
 ## Prerequisites and Security
 
